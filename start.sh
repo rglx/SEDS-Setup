@@ -12,6 +12,21 @@ export WINEDEBUG=-all
 export WINEARCH=win32
 whoami=`whoami`
 
+# Display our output as bold for easy differentiation
+function boldDisplay
+{
+	echo -e "\e[1m$1\e[21m"
+}
+
+# Simple wait-for-user-input function
+function userWait
+{
+	echo
+	boldDisplay $1
+	read -p "Press any key to continue... " -n 1
+	echo
+}
+
 # Before we do anything, make sure the root folder exists
 if ! [[ -d "$serverRoot" ]]; then
 	read -p "$serverRoot not found! Create it now? [y/n] " -n 1 -r
@@ -26,85 +41,75 @@ fi
 
 cd $serverRoot
 
-# Simple wait-for-user-input function
-function userWait
-{
-	read -p "Press any key to continue... " -n 1
-	echo
-	echo
-}
-
 case "$1" in
 	dry-run)
-		echo "Executing a dry-run of setting up the server."
-		echo "Server root is set to $serverRoot"
-		echo "WINEARCH is set to $WINEARCH"
-		echo "We are user $whoami"
+		boldDisplay "Executing a dry-run of setting up the server."
+		boldDisplay "Server root is set to $serverRoot"
+		boldDisplay "WINEARCH is set to $WINEARCH, WINEDEBUG is set to $WINEDEBUG"
+		boldDisplay "We are user $whoami"
 		echo 
 
 		# Test to see if wine directory would be removed
-		echo "Removing $HOME/.wine..."
+		boldDisplay "Removing $HOME/.wine..."
 		if [[ -f $HOME/.wine ]]; then
-			echo "I just removed $HOME/.wine."
+			boldDisplay "I just removed $HOME/.wine."
 		fi
 
 		# Test the creation of needed server directories
-		echo "CDing into $serverRoot..."
-		echo "Creating server directories..."
+		boldDisplay "CDing into $serverRoot..."
+		boldDisplay "Creating server directories..."
 		mkdir -p {config/{backups,logs},client}
-		echo "Server directories created."
+		boldDisplay "Server directories created."
 		/bin/ls --color=auto -l
 
-		echo "Done with initial directory setup."
-		userWait
+		userWait "Done with initial directory setup."
 
 		# Do a trial run of steamcmd
-		echo "Setting up steamcmd..."
-		echo "Creating directory $serverRoot/steamcmd..."
+		boldDisplay "Setting up steamcmd..."
+		boldDisplay "Creating directory $serverRoot/steamcmd..."
 		mkdir "$serverRoot/steamcmd" && cd "$serverRoot/steamcmd"
-		echo "Downloading steamcmd..."
+		boldDisplay "Downloading steamcmd..."
 		wget --no-verbose -O steamcmd_linux.tar.gz 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz'
-		echo "Extracting steamcmd archive..."
+		boldDisplay "Extracting steamcmd archive..."
 		tar -xzf 'steamcmd_linux.tar.gz'
-		echo "Installing / updating steamcmd"
+		boldDisplay "Installing / updating steamcmd"
 		$serverRoot/steamcmd/steamcmd.sh +login anonymous +exit
 
-		echo "steamcmd set up successfully!"
-		userWait
+		userWait "steamcmd set up successfully!"
 
 		# Set up WINE
-		echo "Configuring WINE..."
+		boldDisplay "Configuring WINE..."
 		winecfg > /dev/null
-		echo "Downloading external dependencies..."
+		boldDisplay "Downloading external dependencies..."
 		mkdir -p "$HOME/.cache/winetricks/msxml3"
 		mkdir -p "$HOME/.cache/winetricks/dotnet40"
 		wget --no-verbose -O "$HOME/.cache/winetricks/msxml3/msxml3.msi" "https://github.com/RalphORama/SEDS-Setup/raw/master/bin/msxml3.msi"
 		wget --no-verbose -O "$HOME/.cace/winetricks/dotnet40/gacutil-net40.tar.bz2" "https://github.com/RalphORama/SEDS-Setup/raw/master/bin/gacutil-net40.tar.bz2"
-		echo "Setting up dependencies with winetricks..."
+		boldDisplay "Setting up dependencies with winetricks..."
 		winetricks -q msxml3 dotnet40 > /dev/null
 
-		echo "WINE successfully set up."
+		boldDisplay "WINE successfully set up."
 		userWait
 
 		# Create symlinks
-		echo "Creating server symlinks..."
+		boldDisplay "Creating server symlinks..."
 		ln -s "$serverRoot" "$HOME/.wine/drive_c/users/$whoami/Desktop/spaceengineers"
 		ln -s "$serverRoot/config" "$HOME/.wine/drive_c/users/$whoami/Application Data/SpaceEngineersDedicated"
 
-		echo "Symlinks created."
+		boldDisplay "Symlinks created."
 		userWait
 
 		# Clean up from the dry run
-		echo "Cleaning up..."
-		echo "Remvoing server directories..."
+		boldDisplay "Cleaning up..."
+		boldDisplay "Remvoing server directories..."
 		rm -rf "$serverRoot/config" "$serverRoot/client"
-		echo "Uninstalling steamcmd..."
+		boldDisplay "Uninstalling steamcmd..."
 		rm -rf "$serverRoot/steamcmd"
-		echo "Removing WINE symlinks..."
+		boldDisplay "Removing WINE symlinks..."
 		rm -rf "$HOME/.wine/drive_c/users/$whoami/Application Data/SpaceEngineersDedicated"
 		rm -rf "$HOME/.wine/drive_c/users/$whoami/Desktop/spaceengineers"
 
-		echo "All done with the dry run! Check for errors to make sure the acutal setup will work."
+		boldDisplay "All done with the dry run! Check for errors to make sure the acutal setup will work."
 		userWait
 		exit 0
 	;;
