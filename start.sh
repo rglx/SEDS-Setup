@@ -13,10 +13,10 @@ export WINEARCH=win32
 whoami=`whoami`
 
 # Before we do anything, make sure the root folder exists
-if ! [[ -f $serverRoot ]]; then
+if ! [[ -d "$serverRoot" ]]; then
 	read -p "$serverRoot not found! Create it now? [y/n] " -n 1 -r
 	echo
-	
+
 	if [[ $REPLY =~ ^[Yy] ]]; then
 		mkdir -p $serverRoot
 	else
