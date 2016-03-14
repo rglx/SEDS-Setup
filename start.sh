@@ -22,7 +22,7 @@ function boldDisplay
 function userWait
 {
 	echo
-	boldDisplay $1
+	boldDisplay "$1"
 	read -p "Press any key to continue... " -n 1
 	echo
 }
@@ -58,6 +58,7 @@ case "$1" in
 
 		# Test the creation of needed server directories
 		boldDisplay "CDing into $serverRoot..."
+		cd $serverRoot
 		boldDisplay "Creating server directories..."
 		mkdir -p {config/{backups,logs},client}
 		boldDisplay "Server directories created."
@@ -85,9 +86,9 @@ case "$1" in
 		mkdir -p "$HOME/.cache/winetricks/msxml3"
 		mkdir -p "$HOME/.cache/winetricks/dotnet40"
 		wget --no-verbose -O "$HOME/.cache/winetricks/msxml3/msxml3.msi" "https://github.com/RalphORama/SEDS-Setup/raw/master/bin/msxml3.msi"
-		wget --no-verbose -O "$HOME/.cace/winetricks/dotnet40/gacutil-net40.tar.bz2" "https://github.com/RalphORama/SEDS-Setup/raw/master/bin/gacutil-net40.tar.bz2"
+		wget --no-verbose -O "$HOME/.cache/winetricks/dotnet40/gacutil-net40.tar.bz2" "https://github.com/RalphORama/SEDS-Setup/raw/master/bin/gacutil-net40.tar.bz2"
 		boldDisplay "Setting up dependencies with winetricks..."
-		WINEDEBUG=-all WINEARCH=win32 winetricks -q msxml3 dotnet40 > /dev/null
+		winetricks -q msxml3 dotnet40 > /dev/null
 
 		boldDisplay "WINE successfully set up."
 		userWait
@@ -126,7 +127,6 @@ case "$1" in
 		# Just quit out if they didn't say yes
 		if ! [[ $REPLY =~ ^[Yy] ]]; then exit 0; fi
 
-		echo "Removing $HOME/.wine..."
 		# Only remove the wine directory if it exists
 		# This way we avoid some nasty bugs with `rm -rf`
 		if [[ -f $HOME/.wine ]]; then
@@ -138,29 +138,29 @@ case "$1" in
 		mkdir -p {config/{backups,logs},client}
 
 		# Set up steamcmd
-		echo "Setting up steamcmd..."
 		mkdir "$serverRoot/steamcmd" && cd "$serverRoot/steamcmd"
-		wget -q -O steamcmd_linux.tar.gz 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz'
+		wget --no-verbose -O steamcmd_linux.tar.gz 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz'
 		tar -xzf 'steamcmd_linux.tar.gz'
+		$serverRoot/steamcmd/steamcmd.sh +login anonymous +exit > /dev/null
 
-		# configure our wine directory and make some symlinks
-		cd $HOME
-		echo "Configuring WINE and installing dependencies."
-		WINEDEBUG=-all WINEARCH=win32 winecfg > /dev/null
-		WINEDEBUG=-all winetricks -q msxml3 > /dev/null
-		WINEDEBUG=-all winetricks -q dotnet40 > /dev/null
+		echo # To keep output clean
+
+		# configure WINE
+		winecfg > /dev/null
+		winetricks -q msxml3 dotnet40 > /dev/null
+
+		echo # To keep output clean
+
+		# Create server symlinks
 		ln -s "$serverRoot" "$HOME/.wine/drive_c/users/$whoami/Desktop/spaceengineers"
 		ln -s "$serverRoot/config" "$HOME/.wine/drive_c/users/$whoami/Application Data/SpaceEngineersDedicated"
-		echo "Initial setup complete."
-
-		# install and update steamcmd
-		echo "Installing and updating SteamCMD"
-		$serverRoot/steamcmd/steamcmd.sh +login anonymous +exit
 
 		echo "Setup complete."
 		echo "Please place your server's .cfg file in ~/spaceengineers/config/SpaceEngineers-Dedicated.cfg."
 		echo "You'll need to edit it and change the <LoadWorld /> part to read:"
 		echo "<LoadWorld>C:\users\\$whoami\Application Data\SpaceEngineersDedicated\Saves\SEDSWorld</LoadWorld>."
+
+		exit 0
 	;;
 
 	start)
@@ -169,30 +169,34 @@ case "$1" in
 		if [[ $REPLY =~ ^[Yy] ]]; then
 			# login to steam and fetch the latest gamefiles
 			$serverRoot/steamcmd/steamcmd.sh +force_install_dir "$HOME/.wine/drive_c/users/$whoami/Desktop/spaceengineers" +login anonymous +app_update 298740 -verify +quit
+
+			# Clean all that crap up once we're done
+			read -p "Press any key to continue... " -n 1
+			clear
 		fi
 
 		# clear old binaries and get new ones
-		cd "$serverRoot/config/Saves/SEDSWorld"
-		echo "Cleaning world of dead NPC entries - Credits to Andy_S of #space-engineers"
-		wget -q -O $serverRoot/config/worldcleaner.py 'https://raw.githubusercontent.com/deltaflyer4747/SE_Cleaner/master/clean.py'
-		python $serverRoot/config/worldcleaner.py
+		# We'll just redownload the script every time in case of an update.
+		wget -q -O "$serverRoot/config/worldcleaner.py" 'https://raw.githubusercontent.com/deltaflyer4747/SE_Cleaner/master/clean.py'
+		python "$serverRoot/config/worldcleaner.py"
 
 		# start the DS
 		echo "Starting Space Engineers dedicated server..."
 		cd "$HOME/.wine/drive_c/users/$whoami/Desktop/spaceengineers/DedicatedServer"
-		WINEDEBUG=-all wine SpaceEngineersDedicated.exe -console
+		wine SpaceEngineersDedicated.exe -console
 		logstamper=`date +%s`
 
 		# copy server world and log to backups and logs directories
-		cd ../config
-		mv SpaceEngineersDedicated.log logs/server-$logstamper.log
-		cp -rf Saves/SEDSWorld backups/world-$logstamper-svhalt
+		# TODO: Fix log backups
+		cd "$serverRoot/config"
+		#mv SpaceEngineersDedicated.log logs/server-$logstamper.log
+		cp -rf "Saves/SEDSWorld" "backups/world-$logstampworld"
 	;;
 
 	backupworld) #put an entry in your crontab pointing to this script with the first argument being 'backupworld'.
 		logstampworld=`date +%s`
-		cd $HOME/spaceengineers/config
-		cp -rf Saves/SEDSWorld backups/world-$logstampworld
+		cd "$serverRoot/config"
+		cp -rf "Saves/SEDSWorld" "backups/world-$logstampworld"
 
 		exit 0
 	;;
@@ -203,7 +207,7 @@ case "$1" in
 			echo "$service is running, not starting"
 			exit 0
 		else
-			read -p "$service is not running, start it now?" -n 1 -p
+			read -p "$service is not running, start it now? " -n 1 -r
 			if [[ $REPLY =~ ^[Yy] ]]; then
 				screen -dmS $service -t $service $0 start
 			fi
