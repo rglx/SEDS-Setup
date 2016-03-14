@@ -8,12 +8,95 @@ serverRoot=$HOME/spaceengineers
 ## (unless you know what you're doing)
 service=spaceengineers
 procname=SpaceEngineersDedicated.exe
-WINEDEBUG=-all
+export WINEDEBUG=-all
+export WINEARCH=win32
 whoami=`whoami`
 
 cd $serverRoot
 
+# Simple wait-for-user-input function
+function userWait
+{
+	read -p "Press any key to continue... " -n 1
+	echo
+	echo
+}
+
 case "$1" in
+	dry-run)
+		echo "Executing a dry-run of setting up the server."
+		echo "Server root is set to $serverRoot"
+		echo "WINEARCH is set to $WINEARCH"
+		echo "We are user $whoami"
+		echo 
+
+		# Test to see if wine directory would be removed
+		echo "Removing $HOME/.wine..."
+		if [[ -f $HOME/.wine ]]; then
+			echo "I just removed $HOME/.wine."
+		fi
+
+		# Test the creation of needed server directories
+		echo "CDing into $serverRoot..."
+		echo "Creating server directories..."
+		mkdir -p {config/{backups,logs},client}
+		echo "Server directories created."
+		/bin/ls --color=auto -l
+
+		echo "Done with initial directory setup."
+		userWait
+
+		# Do a trial run of steamcmd
+		echo "Setting up steamcmd..."
+		echo "Creating directory $serverRoot/steamcmd..."
+		mkdir "$serverRoot/steamcmd" && cd "$serverRoot/steamcmd"
+		echo "Downloading steamcmd..."
+		wget --no-verbose -O steamcmd_linux.tar.gz 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz'
+		echo "Extracting steamcmd archive..."
+		tar -xzf 'steamcmd_linux.tar.gz'
+		echo "Installing / updating steamcmd"
+		$serverRoot/steamcmd/steamcmd.sh +login anonymous +exit
+
+		echo "steamcmd set up successfully!"
+		userWait
+
+		# Set up WINE
+		echo "Configuring WINE..."
+		winecfg > /dev/null
+		echo "Downloading external dependencies..."
+		mkdir -p "$HOME/.cache/winetricks/msxml3"
+		mkdir -p "$HOME/.cache/winetricks/dotnet40"
+		wget --no-verbose -O "$HOME/.cache/winetricks/msxml3/msxml3.msi" "https://github.com/RalphORama/SEDS-Setup/raw/master/bin/msxml3.msi"
+		wget --no-verbose -O "$HOME/.cace/winetricks/dotnet40/gacutil-net40.tar.bz2" "https://github.com/RalphORama/SEDS-Setup/raw/master/bin/gacutil-net40.tar.bz2"
+		echo "Setting up dependencies with winetricks..."
+		winetricks -q msxml3 dotnet40 > /dev/null
+
+		echo "WINE successfully set up."
+		userWait
+
+		# Create symlinks
+		echo "Creating server symlinks..."
+		ln -s "$serverRoot" "$HOME/.wine/drive_c/users/$whoami/Desktop/spaceengineers"
+		ln -s "$serverRoot/config" "$HOME/.wine/drive_c/users/$whoami/Application Data/SpaceEngineersDedicated"
+
+		echo "Symlinks created."
+		userWait
+
+		# Clean up from the dry run
+		echo "Cleaning up..."
+		echo "Remvoing server directories..."
+		rm -rf "$serverRoot/config" "$serverRoot/client"
+		echo "Uninstalling steamcmd..."
+		rm -rf "$serverRoot/steamcmd"
+		echo "Removing WINE symlinks..."
+		rm -rf "$HOME/.wine/drive_c/users/$whoami/Application Data/SpaceEngineersDedicated"
+		rm -rf "$HOME/.wine/drive_c/users/$whoami/Desktop/spaceengineers"
+
+		echo "All done with the dry run! Check for errors to make sure the acutal setup will work."
+		userWait
+		exit 0
+	;;
+
 	setup)
 		# Wipe the wine directory
 		echo "In order for this script to work, you must wipe your wine directory."
@@ -31,13 +114,14 @@ case "$1" in
 		fi
 
 		# Make directories for server use
-		mkdir -p "$serverRoot/{config/{backups,logs},client}"
+		cd $serverRoot
+		mkdir -p {config/{backups,logs},client}
 
 		# Set up steamcmd
 		echo "Setting up steamcmd..."
 		mkdir "$serverRoot/steamcmd" && cd "$serverRoot/steamcmd"
 		wget -q -O steamcmd_linux.tar.gz 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz'
-		tar -xzf steamcmd_linux.tar.gz
+		tar -xzf 'steamcmd_linux.tar.gz'
 
 		# configure our wine directory and make some symlinks
 		cd $HOME
