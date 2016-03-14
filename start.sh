@@ -15,7 +15,7 @@ whoami=`whoami`
 # Display our output as bold for easy differentiation
 function boldDisplay
 {
-	echo `tput smul`$1`tput rmul`
+	echo `tput smul`"$1"`tput rmul`
 }
 
 # Simple wait-for-user-input function
@@ -52,6 +52,7 @@ case "$1" in
 		# Test to see if wine directory would be removed
 		boldDisplay "Removing $HOME/.wine..."
 		if [[ -f $HOME/.wine ]]; then
+			mv "$HOME/.wine" "$HOME/.winebackup"
 			boldDisplay "I just removed $HOME/.wine."
 		fi
 
@@ -86,7 +87,7 @@ case "$1" in
 		wget --no-verbose -O "$HOME/.cache/winetricks/msxml3/msxml3.msi" "https://github.com/RalphORama/SEDS-Setup/raw/master/bin/msxml3.msi"
 		wget --no-verbose -O "$HOME/.cace/winetricks/dotnet40/gacutil-net40.tar.bz2" "https://github.com/RalphORama/SEDS-Setup/raw/master/bin/gacutil-net40.tar.bz2"
 		boldDisplay "Setting up dependencies with winetricks..."
-		winetricks -q msxml3 dotnet40 > /dev/null
+		WINEDEBUG=-all WINEARCH=win32 winetricks -q msxml3 dotnet40 > /dev/null
 
 		boldDisplay "WINE successfully set up."
 		userWait
@@ -105,6 +106,8 @@ case "$1" in
 		rm -rf "$serverRoot/config" "$serverRoot/client"
 		boldDisplay "Uninstalling steamcmd..."
 		rm -rf "$serverRoot/steamcmd"
+		boldDisplay "Restoring WINE installation..."
+		mv "$HOME/.winebackup" "$HOME/.wine"
 		boldDisplay "Removing WINE symlinks..."
 		rm -rf "$HOME/.wine/drive_c/users/$whoami/Application Data/SpaceEngineersDedicated"
 		rm -rf "$HOME/.wine/drive_c/users/$whoami/Desktop/spaceengineers"
@@ -161,7 +164,7 @@ case "$1" in
 	;;
 
 	start)
-		read -p "Update Space Engineers now? [y/n]"
+		read -p "Update Space Engineers now? [y/n]" -n 1 -p
 		echo
 		if [[ $REPLY =~ ^[Yy] ]]; then
 			# login to steam and fetch the latest gamefiles
@@ -190,16 +193,20 @@ case "$1" in
 		logstampworld=`date +%s`
 		cd $HOME/spaceengineers/config
 		cp -rf Saves/SEDSWorld backups/world-$logstampworld
+
+		exit 0
 	;;
 
 	*)
 		if ps ax | grep -v grep | grep $procname > /dev/null
 		then
 			echo "$service is running, not starting"
-			exit
+			exit 0
 		else
-			echo "$service is not running, starting"
-			screen -dmS $service -t $service $0 start
+			read -p "$service is not running, start it now?" -n 1 -p
+			if [[ $REPLY =~ ^[Yy] ]]; then
+				screen -dmS $service -t $service $0 start
+			fi
 		fi
 	;;
 esac
