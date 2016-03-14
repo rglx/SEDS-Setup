@@ -1,65 +1,94 @@
-<h1>SEDS-Setup</h1>
+# SEDS-Setup
 
-<h2>Description</h2>
-It's a bash script for starting and configuring a Space Engineers server on a optionally headless Linux machine.
+## Description    
+SEDS-Setup is a bash script for creating and running a Space Engineers server on an optionally headless Linux machine.
 
-<a href="https://github.com/ArghArgh200/SEDS-Setup/issues">Report issues on the issues page. <B>MAKE SURE YOU LOOK THROUGH THEM FIRST.</B></a> Someone's probably already posted a solution, or it's a known bug.
+## Issues    
+Please report issues on the [issues page][1]. Many solutions for known bugs already exist, so please read through present issues first.
 
-<h2>Requirements</h2>
+**Make sure `wine --version` returns a value of `1.7.30` or greater before posting an issue!**
 
-<pre>A Debian or Ubuntu-based OS (Others untested, use at own risk, <a href="https://github.com/ArghArgh200/SEDS-Setup/issues">report success/failures/tweaks to issues</a>)
-bash
-WINE 1.7.30 or higher - ***64-bit OSes will need to use 32-bit WINE!*** .NET 4 is not supported under WINE... yet.
-winetricks
-python-2.7
-unzip
-wget
-screen</pre>
+## Requirements
+It is recommended to use a Debian- or Ubuntu-based OS. Others are untested, but feel free to use them at your own risk. Please report any successes/failures/tweaks on the [issues page][1].
 
-<h2>Usage</h2>
+In order for this script to function properly, you must install the following packages:
 
-<h3>Step one: Download the script.</h3>
-<pre><code>mkdir ~/spaceengineers
-cd ~/spaceengineers
-wget -O start.sh <a href="https://raw.githubusercontent.com/ArghArgh200/SEDS-Setup/master/start.sh">https://raw.githubusercontent.com/ArghArgh200/SEDS-Setup/master/start.sh</a>
-chmod +x start.sh</pre></code>
-The script is hardcoded to put your server in ~/spaceengineers. If you want to change that... good luck.
+* WINE 1.7.30 or higher
+    - 64-bit OSes will need to use 32-bit WINE!
+    - .NET 4 is not yet supported under WINE.
+* winetricks
+* Python 2.7
+* unzip 
+* wget 
+* GNU Screen
 
-<h3>Step two: Check your wine version.</h3>
-Run <code>wine --version</code> and also check if you have winetricks installed by running <code>which winetricks</code>
+To install these dependencies, run the commands for your OS.
 
-If your wine version is not 1.7.30 or higher the script will not work properly and I will absolutely refuse to help you.
+Ubuntu:
 
-<h3>Step three: Run the script's setup function</h3>
-<pre><code>cd ~/spaceengineers
-chmod +x start.sh
-./start.sh setup</code></pre>
+```bash
+sudo add-apt-repository ppa:ubuntu-wine/ppa
+sudo apt-get update
+sudo apt-get install wine1.8 winetricks
+```
 
-<h3>Step four: Upload your configuration and start the server.</h3>
-This is probably the most important part, and also the part where most of the stuff that can go wrong goes wrong.
+## Usage
+1. Download the script:
 
-Your configuration needs to go in <code>~/spaceengineers/config/SpaceEngineers-Dedicated.cfg</code>, your world in <code>~/spaceengineers/config/Saves/SEDSWorld</code>, and your configuration's LoadWorld directive should point to <code>C:\users\<your username>\Application Data\SpaceEngineersDedicated\Saves\SEDSWorld</code> in order for the server to Start right.
+    ```bash
+    mkdir ~/spaceengineers
+    cd ~/spaceengineers
+    wget -O start.sh https://raw.githubusercontent.com/ArghArgh200/SEDS-Setup/master/start.sh
+    chmod +x start.sh
+    ```
 
+2. Set up the server:
 
-Alternatively you can just put the SpaceEngineers-Dedicated.cfg on the server, and have the server generate a world.
+    ```bash
+    # Optional: edit start.sh to provide a location to install the server
+    cd ~/spaceengineers
+    ./start.sh setup
+    ```
 
+3. Upload your configuration and start the server:
 
-This should get you off the ground. I won't tell you how to make the configurations here, but there are numerous forum posts on the matter. <a href="http://forums.keenswh.com/post/6922069">Here's one you can use</a>. Hint: it involves running the dedicated server on your computer, generating a configuration using their program, and uploading it with some minor changes.
+    - Place your configuration in `~/spaceengineers/config/SpaceEngineers-Dedicated.cfg`
+    - Place your world in the `~/spaceengineers/config/Saves/SEDSWorld` folder
+    - Set your configuration's `LoadWorld` directive to point to `C:\users\<your username>\Application Data\SpaceEngineersDedicated\Saves\SEDSWorld`
 
-<h3>A note on changing server settings once you have a world made.</h3>
+    - Alternatively put `SpaceEngineers-Dedicated.cfg` on the server and have the server generate a world.
 
-All server settings are overridden by the world's specific settings. The server name is one of the only things that isn't. If you want to add or remove mods, change the world's name or description, or refining speed/inventory sizes, you NEED to do it in the world! Use WinSCP or Filezilla to download the world folder to your local worlds, and edit the world via the game. If you have custom inventory limits or assembler speeds etc you'll have to open your Sandbox.sbc and edit them that way. BE CAREFUL! MAKE BACKUPS! Reckless editing of world files can and in most cases WILL break your world!
+    - For mor information on creating the needed configuration files, see [this forum post][2]
 
-Now, run <code>./start.sh</code>, <code>screen -x spaceengineers</code>, and enjoy!
+## Automated backups using crontab
+Add one of the following line in your crontab file:
 
-<h3>Automated World Backups using crontab</h3>
-Add the following line in your crontab file:
-<pre><code>*/A NUMBER * * * * /home/YOUR USERNAME/spaceengineers/start.sh backupworld</code></pre>
-The number means that every that many minutes that go by, backup the world.
+```bash
+# Back up the world every 30 minutes
+# Change 30 to however many minutes you want (1 - 59)
+*/30 * * * * /home/YOUR USERNAME/spaceengineers/start.sh backupworld
 
-<h2>Planned features</h2>
-Restarting the server safely every day
+# Back up the world every 6 hours
+# Change 6 to however many hours you want (1 - 23)
+0 */6 * * * /home/YOUR USERNAME/spaceengineers/start.sh backupworld
 
-Completely clear installation every week/month, and reinstall, this can be done already by manually removing all but the .cfg, the world, and the script and running <code>./start.sh setup</code> again.
+# Back up the world once a day
+0 0 * * * /home/YOUR USERNAME/spaceengineers/start.sh backupworld
+```
 
-Credits to Andy_S and NolanSyKinsley of the space-engineers IRC channel on Esper for their tidbits, and <a href="http://forums.keenswh.com/post/7308307">Andy_S's NPC identity cleaner</a>.
+## Changing server settings after generating a world
+All server settings are overridden by the world's specific settings. The server name is one of the only things that isn't. If you want to add or remove mods, change the world's name or description, or refining speed/inventory sizes, you **need** to do it in the world! Use WinSCP or Filezilla to download the world folder to your local worlds, and edit the world via the game. If you have custom inventory limits or assembler speeds etc you'll have to open your Sandbox.sbc and edit them that way. **BE CAREFUL! MAKE BACKUPS!** Reckless editing of world files can and in most cases **will** break your world!
+
+## Planned features
+- [ ] Restarting the server safely every day
+- [ ] Complete reinstall once per month
+    - (This can be done already by manually removing all but the .cfg, the world, and the script and running `./start.sh setup` again.)
+
+# Credits
+* Andy_S and NolanSyKinsley of #space-engineers on Esper for their tidbits
+* Andy_S for his wonderful [NPC identity cleaner][3]
+* RalphORama for refactoring start.sh and README.md
+
+[1]: https://github.com/ArghArgh200/SEDS-Setup/issues "Issues"
+[2]: http://forums.keenswh.com/post/6922069 "Server CFG Tutorial"
+[3]: http://forums.keenswh.com/post/7308307 "NPC Identity Cleaner"
