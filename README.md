@@ -24,7 +24,7 @@ In order for this script to function properly, you must install the following pa
 
 To install these dependencies, run the commands for your OS.
 
-Ubuntu:
+**Ubuntu:**
 
 ```bash
 sudo add-apt-repository ppa:ubuntu-wine/ppa
@@ -58,10 +58,10 @@ sudo apt-get install wine1.8 winetricks
 
     - Alternatively put `SpaceEngineers-Dedicated.cfg` on the server and have the server generate a world.
 
-    - For mor information on creating the needed configuration files, see [this forum post][2]
+    - For more information on creating the needed configuration files, see [this forum post][2]
 
 ## Automated backups using crontab
-Add one of the following line in your crontab file:
+Add **one** of the following line in your crontab file:
 
 ```bash
 # Back up the world every 30 minutes
