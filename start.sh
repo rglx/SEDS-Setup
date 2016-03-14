@@ -12,6 +12,18 @@ export WINEDEBUG=-all
 export WINEARCH=win32
 whoami=`whoami`
 
+# Before we do anything, make sure the root folder exists
+if ! [[ -f $serverRoot ]]; then
+	read -p "$serverRoot not found! Create it now? [y/n] " -n 1 -r
+	echo
+	
+	if [[ $REPLY =~ ^[Yy] ]]; then
+		mkdir -p $serverRoot
+	else
+		exit 0
+	fi
+fi
+
 cd $serverRoot
 
 # Simple wait-for-user-input function
