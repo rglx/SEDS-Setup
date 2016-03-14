@@ -15,7 +15,7 @@ whoami=`whoami`
 # Display our output as bold for easy differentiation
 function boldDisplay
 {
-	echo -e "\e[1m$1\e[21m"
+	echo `tput smul`$1`tput rmul`
 }
 
 # Simple wait-for-user-input function
