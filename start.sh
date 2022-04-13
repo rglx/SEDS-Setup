@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# this script assumes you have:
+# - configured a 64-bit Windows 7 wine prefix on Debian 11
+# - the Linux version of SteamCMD and winetricks installed
+# - having already run the following with X11 forwarding on display 10:
+#     `DISPLAY=:10 WINEDEBUG=fixme-all winetricks -q corefonts vcrun6 vcrun2013 vcrun2017 dotnet48`
+# - you might also want Xvfb installed and running under display 0 afterwards.
+
 serverFiles="/home/spaceengineers/server-files" # needs to be exact- no ~s or variables that steamcmd won't understand.
 serverData="/home/spaceengineers/.wine/drive_c/users/spaceengineers/AppData/Roaming/SpaceEngineersDedicated"
 steamCmd="/home/spaceengineers/steamcmd/steamcmd.sh"
