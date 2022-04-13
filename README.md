@@ -195,6 +195,30 @@ chmod +x ~/start.sh
 ```
 and inside `start.sh`, put the contents of start.sh from this repository.
 
+### Xvfb
+after that, if you did X11 display forwarding, you'll want to install Xvfb for a headless X session, then run the server under X11 display offset 0 (`DISPLAY=:0`) instead of 10
+
+that way when you exit your SSH session or exit the 
+
+## part eight: start it.
+
+`./start tmux-direct` should accomplish this without much hassle. after that:
+```
+tmux a
+```
+will attach you to the running tmux session. detaching is pretty easy, press <kbd>Ctrl</kbd><kbd>S</kbd> then hit <kbd>D</kbd> - for more keybinds and a clearer usage guide to tmux see these pages:
+### https://tmuxcheatsheet.com/quick-start/
+
+# troubleshooting and common issues
+## "wine won't install"
+follow the guide on winehq a little closer, maybe you forgot to enable 32-bit packages?
+## "my server is up and my firewalls are correct and all my network configs are working, but i still can't connect!"
+some providers (namely OVH) filter UDP packets without a TCP connection alongside it on the same port - ensure you've allowed your server's port through your provider's firewall as well as your machine's own firewall
+
+##### ask me how long it took me to find that out. twice. go on, ask! i dare you.
+
+
+
 ------------------
 ## credits
  - original information from Andy_S and NolanSyKinsley of the #space-engineers IRC channel on Esper for their information, way back when
