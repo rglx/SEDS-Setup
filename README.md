@@ -48,12 +48,12 @@ currently the most reliable and simple way to do X11 forwarding on windows is wi
 - start Xming display server:
 	- use Multiple Windows mode
 	- set Display number to 10
+	- hit Next & Finish until the icon shows up in your system tray.
 - start PuTTY, but don't login just yet:
 	- load your session profile for your server
 	- go down to Connection > SSH > X11 in the settings
 	- Check the box that says "Enable X11 forwarding"
 	- set "X display location" to `localhost:10`
-	- hit Next & Finish until the icon shows up in your system tray.
 - login to your server as root (this time) and edit file `/etc/ssh/sshd_config`:
 	- scroll all the way to the bottom and add the following (or uncomment the ones already there): 
 ```
