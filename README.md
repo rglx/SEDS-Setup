@@ -206,7 +206,7 @@ that way when you exit your SSH session or exit the
 ```
 tmux a
 ```
-will attach you to the running tmux session. detaching is pretty easy, press <kbd>Ctrl</kbd><kbd>S</kbd> then hit <kbd>D</kbd> - for more keybinds and a clearer usage guide to tmux see these pages:
+will attach you to the running tmux session. detaching is pretty easy, press <kbd>Ctrl</kbd><kbd>B</kbd> then hit <kbd>D</kbd> - for more keybinds and a clearer usage guide to tmux see these pages:
 ### https://tmuxcheatsheet.com/quick-start/
 
 # troubleshooting and common issues
