@@ -1,7 +1,7 @@
 # SEDS-Setup
 
 ## description
-SEDS-Setup - previously known and used as a bash script that handled the deployment of a Space Engineers dedicated server, now it is documentation that should serve the same purpose in competent hands.
+previously known and used as a bash script that handled the deployment of a Space Engineers dedicated server, now it is documentation that should serve the same purpose in competent hands.
 
 ## foreword
 space engineers as a whole has been out for just shy of ten years, and in that time has spanned several major versions of .NET, which has caused server administrators and players and modders alike plenty of grief. these instructions should not be followed as a be-all, end-all, but instead taken as sort of a journal of one girl's failings to properly set a server up and getting tired of all the fragmented and outdated documentation around all of it, and writing her own guide. 
