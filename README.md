@@ -117,7 +117,7 @@ ln -s ~/server-data ~/.wine/drive_c/users/spaceengineers/AppData/Roaming/SpaceEn
 this is gonna be the most critical part. if it fails at any step or can't install something, you're screwed.
 ```bash
 cd ~
-DISPLAY=:10 WINEDEBUG=fixme-all ./winetricks -q corefonts vcrun6 vcrun2013 vcrun2017 dotnet48
+DISPLAY=:10 WINEDEBUG=fixme-all ./winetricks corefonts vcrun6 vcrun2013 vcrun2017 dotnet48
 ```
 this will sit in your console for a bit and spam various downloads and silent installs, then for some it may present you an actual install wizard to click through.
 
