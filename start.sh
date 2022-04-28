@@ -4,26 +4,31 @@
 # - configured a 64-bit Windows 7 wine prefix on Debian 11
 # - the Linux version of SteamCMD and winetricks installed
 # - having already run the following with X11 forwarding on display 10:
-#     `DISPLAY=:10 WINEDEBUG=fixme-all winetricks -q corefonts vcrun6 vcrun2013 vcrun2017 dotnet48`
-# - you might also want Xvfb installed and running under display 0 afterwards.
+#     `DISPLAY=:10 WINEDEBUG=fixme-all winetricks corefonts vcrun6 vcrun2013 vcrun2017 dotnet48`
+# - you will also want Xvfb installed and running under display 0 afterwards.
 
 serverFiles="/home/spaceengineers/server-files" # needs to be exact- no ~s or variables that steamcmd won't understand.
-serverData="/home/spaceengineers/.wine/drive_c/users/spaceengineers/AppData/Roaming/SpaceEngineersDedicated"
-steamCmd="/home/spaceengineers/steamcmd/steamcmd.sh"
-steamAppId=298740
-restartDelay=-1
+serverData="/home/spaceengineers/server-data" # must be the same effective path used in the server's -path argument.
+steamCmd="/srv/software/steamcmd/steamcmd.sh" # location of your linux install of steamcmd
+steamAppId=298740 # steam appid of the dedicated server
+restartDelay=60 # ideally, have this pretty high so nothing bad happens if the server can't start or Steam tells the server to go away
 runAsUser="spaceengineers"
 service="spaceengineers"
 
+broadcastmessageShim(){
+	echo "session: $1"
+	broadcastmessage "$1" > /dev/null 2>&1
+}
+
 updateServerFiles(){
-	$steamCmd +@sSteamCmdForcePlatformType windows +login anonymous +force_install_dir $serverFiles +app_update $steamAppId validate +quit
-	rm -rf /tmp/dumps # multiple users running steamCMD can cause issues specifically regarding this folder
+	$steamCmd +@sSteamCmdForcePlatformType windows +force_install_dir $serverFiles +login anonymous +app_update $steamAppId validate +quit
+	rm -rf /tmp/dumps # crashdumps from steamcmd
 }
 
 executeServer(){
-	pushd $serverFiles/DedicatedServer64/
-	DISPLAY=:0 WINEDEBUG=fixme-all wine SpaceEngineersDedicated.exe -console -IgnoreLastSession
-	popd
+	pushd $serverFiles/DedicatedServer64/ > /dev/null
+	DISPLAY=:0 WINEDEBUG=fixme-all wine SpaceEngineersDedicated.exe -noconsole -IgnoreLastSession -path "Z:\\home\\spaceengineers\\server-data\\"
+	popd > /dev/null
 }
 
 
@@ -31,14 +36,21 @@ cleanServer() {
 	echo "cleanServer: beginning file cleanup..."
 
 	echo "cleanServer: 	stashing logs..."
-	mkdir -p $serverData/logs/
-	xz -9 $serverData/*.log
-	mv -n $serverData/*.log.xz $serverData/logs
+	mkdir -p $serverData/Logs/ > /dev/null 2>&1
+	xz -9 $serverData/*.log > /dev/null 2>&1
+	xz -9 $serverData/Logs/*.log > /dev/null 2>&1
+	mv -n $serverData/*.log.xz $serverData/Logs > /dev/null 2>&1
 
-	echo "cleanServer: 	flushing steam cached downloads..."
-	rm -rf $serverData/cache
-	rm -rf $serverData/downloads
-	rm -rf $serverData/temp
+	echo "cleanServer:	removing unused server directories..."
+	rmdir $serverData/cache
+	rmdir $serverData/downloads
+	rmdir $serverData/temp
+	rmdir $serverData/Mods
+
+	echo "cleanServer:	removing stale/unused files..."
+	rm -f $serverData/Saves/LastSession.sbl
+	rm -f $serverData/Saves/*/thumb.jpg
+	rm -f $serverData/Minidump.dmp
 
 	echo "cleanServer: file cleanup complete!"
 }
@@ -46,14 +58,23 @@ cleanServer() {
 deepCleanServer() {
 	echo "deepCleanServer: beginning deep clean!"
 
-	echo "deepCleanServer: 	completely flushing steam installation..."
+	echo "deepCleanServer:	removing cached steam login information..."
 	rm -rf ~/.steam ~/Steam
 
-	echo "deepCleanServer: 	removing all mods for redownload..."
-	rm -rf $serverData/Mods
+	echo "deepCleanServer:	removing dedicated server..."
+	rm -rf $serverFiles
+	mkdir -p $serverFiles
+
+	echo "deepCleanServer:	removing downloaded mods..."
+	rm -f $serverData/appworkshop_*.acf
 	rm -rf $serverData/content
 
+	echo "deepCleanServer:	removing unused SEDS auto-updater files..."
+	rm -rf $serverData/Updater
+
 	echo "deepCleanServer: deep clean complete!"
+	echo "deepCleanServer: for a truly clean experience, back up the Saves and Storage and Logs folders from your server-data folder, remove ~/.wine, reinitialize your wineprefix, then reinstall .NET and the DS's other dependencies."
+	echo "deepCleanServer: this is of course, optional, but recommended if you're encountering issues."
 }
 
 
@@ -81,7 +102,7 @@ countdown(){
 
 if [[ ! $(whoami) == $runAsUser ]]; then # prevent people from running stuff under the wrong users
 	clear
-	echo -e "`toilet "HEY!"`\nDon't run this script as the wrong user!"| /usr/games/lolcat
+	echo -e "`toilet "HEY!"`\nDon't run this script as the wrong user!"| lolcat
 	exit 1
 fi
 
@@ -91,11 +112,11 @@ case "$1" in
 		while true; do
 			echo "service: starting $service..."
 			touch $serverData/running.lck
-			toilet -F crop -F border -w 99999 "$service" | /usr/games/lolcat
-			broadcastmessage "ℹ️ $service started." &
+			toilet -F crop -F border -w 99999 "$service" | lolcat
+			broadcastmessageShim "ℹ️ $service restarted." &
 
 			cleanServer # clean server files
-			updateServerFiles # update via steamcmd
+			#updateServerFiles # update via steamcmd
 
 			executeServer # run the server itself
 
@@ -108,13 +129,17 @@ case "$1" in
 			# now pick our restart warnings...
 			if [[ $restartDelay == "0" ]]; then
 				echo "service: not restarting! restart with $0"
+				#broadcastmessageShim "🛑 $service stopped! NOT RESTARTING!!" &
 				exit 0
 			elif [[ $restartDelay == "-1" ]]; then
 				echo "service: awaiting console input to restart service"
+				#broadcastmessageShim "⚠️ $service stopped! NOT RESTARTING!!" &
+				sleep 5
 				read -p "service: [ enter to continue or Ctrl-C to abort ]" unused
 			else
 				echo "service: waiting $restartDelay seconds, then restarting!"
 				echo "service: [ Ctrl-C to abort ]"
+				#broadcastmessageShim "⚠️ $service stopped! Restarting!" &
 				countdown "00:00:$restartDelay"
 			fi
 		done
@@ -126,7 +151,7 @@ case "$1" in
 	;;
 	tmux-direct)
 		echo "session: creating tmux session for $service with server starting within..."
-		tmux new-session -d -n $service -s $service bash $0
+		tmux new-session -d -n $service -s $service "bash $0 start"
 		echo "session: session created & server starting! attach to it with 'tmux a -t $service'"
 	;;
 	update)
@@ -150,7 +175,8 @@ case "$1" in
 			exit 1
 		fi
 		echo "deepCleanServer: starting deep clean of server files!"
-		echo "deepCleanServer: this is VERY destructive! (dissolves groups, white/blacklists)"
+		echo "deepCleanServer: this is VERY destructive!"
+		echo "deepCleanServer: it will force a full reinstall of the dedicated server AND your mods!"
 		read -p "deepCleanServer: [ enter to continue or Ctrl-C to abort ]" unused
 		cleanServer
 		deepCleanServer
@@ -178,11 +204,11 @@ case "$1" in
 		echo "Usage: $0 [optional function]"
 		echo " - tmux: creates a properly-named tmux session for the server to reside in."
 		echo " - tmux-direct: starts the server directly under a tmux session"
-		echo " - update: updates the server's files from steamcmd. run this before trying to start the server."
+		echo " - update: updates the server's files from steamcmd"
 		echo " - clean: cleans some base files if they weren't already when the server stopped."
-		echo " - deepclean: completely uninstalls the server, Steam, and mod files, then redownloads them all on the next server start. use only if something's broken."
-		echo " - send-tmux: (presently unsupported by SEDS) sends a command to the server via tmux. wrap in quotes, and include leading /"
-		echo " - unlock: removes stale running.lck, allowing the server to start."
+		echo " - deepclean: completely uninstalls the server, Steam, and mod files, then redownloads them all. use only if something's broken."
+		echo " - send-tmux: sends a command to the server via tmux. wrap in quotes, and include leading /"
+		echo " - unlock: removes stale running.lck file, allowing the server to start."
 		exit 0
 	;;
 	*)

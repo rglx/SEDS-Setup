@@ -4,7 +4,10 @@
 previously known and used as a bash script that handled the deployment of a Space Engineers dedicated server, now it is documentation that should serve the same purpose in competent hands.
 
 ## foreword
-space engineers as a whole has been out for just shy of ten years, and in that time has spanned several major versions of .NET, which has caused server administrators and players and modders alike plenty of grief. these instructions should not be followed as a be-all, end-all, but instead taken as sort of a journal of one girl's failings to properly set a server up and getting tired of all the fragmented and outdated documentation around all of it, and writing her own guide. 
+space engineers as a whole has been out for just shy of ten years, and in that time has spanned several major versions of .NET, which has caused server administrators and players and modders alike plenty of grief. these instructions should not be followed as a be-all, end-all, but instead taken as sort of a journal of one girl's failings to properly set a server up and getting tired of all the fragmented and outdated documentation around all of it, and writing her own guide.
+
+it should also be noted that this is the single worst piece of server software i have ever used on any OS in the last fifteen years. it's like someone has decided to take all accepted software development methods and throw them clean out the window. it's insane. it's bad. do better, keen. we certainly deserve it.
+
 
 ## requirements
 - a machine with at the absolute least 8 cores with more than 3GHz apiece, and 16GB of RAM, along with PLENTY of storage space. north of 300GB is a good starting point but depending on how big your server is you'll want more. most of it is gonna be in asteroids/planets and server backups.
@@ -106,18 +109,18 @@ DISPLAY=:10 winecfg
 ```
 it'll take a few seconds to show up and flood the living daylights out of your SSH terminal, but once it shows up, at the bottom of the window it should say `Windows Version:` and then a dropdown. Even if it already says "Windows 7", click it, select "Windows 7" again, and hit "OK".
 
-### (optional) make a symlink to your server's data directory
-when you're taking backups or accessing it later in this tutorial, it's a lot easier to have a shortcut in place so you don't have to click so many times:
+### create your server's data directory
+this is where the server will put its logs, and where your world will reside, so make sure it gets backed up regularly.
 ```bash
-ln -s ~/server-data ~/.wine/drive_c/users/spaceengineers/AppData/Roaming/SpaceEngineersDedicated/
+mkdir ~/server-data
 ```
-(currently this will appear as a "broken link" in your home directory until the server is started once, just ignore it.)
 
 ### use winetricks to install the game's dependencies
 this is gonna be the most critical part. if it fails at any step or can't install something, you're screwed.
 ```bash
 cd ~
-DISPLAY=:10 WINEDEBUG=fixme-all ./winetricks corefonts vcrun6 vcrun2013 vcrun2017 dotnet48
+export DISPLAY=:10
+WINEDEBUG=fixme-all ./winetricks corefonts vcrun6 vcrun2013 vcrun2017 dotnet48
 ```
 this will sit in your console for a bit and spam various downloads and silent installs, then for some it may present you an actual install wizard to click through.
 
@@ -153,7 +156,7 @@ this will take some time. it will download and validate that the dedicated serve
 spoiler alert: it will crash. that's expected. the GUI for SEDS presently does NOT function under WINE and i do not expect it to get better. if you're having different results, great! but when i tried to use the GUI through X11 forwarding it freaked out and flew off the upper right of my screen, never to return, then crashed.
 ```bash
 cd ~/server-files/DedicatedServer64/
-DISPLAY=:10 WINEDEBUG=fixme-all wine SpaceEngineersDedicated.exe -console
+DISPLAY=:10 WINEDEBUG=fixme-all wine SpaceEngineersDedicated.exe -console -path "Z:\\home\\spaceengineers\\server-data\\"
 ```
 the server will sort-of start, then just crash saying it can't find a world, and then sit there at "Press Enter to continue" - hit Enter a few times and give it a minute- this is truly some foolish behavior on Keen's part but it will lock your whole terminal up completely for several seconds while it thinks about dying. just let it, and hope this bug gets patched while you wait for it to drop you back to your shell. that's what i do.
 
@@ -178,36 +181,28 @@ if you choose to password it, obviously, write the password down somewhere, beca
 once you've created and saved your world and configuration you'll need to make a few edits to SpaceEngineers-Dedicated.cfg:
 ```xml
 	<IP>[your machine's IP address]</IP>
-	<LoadWorld>C:\Users\spaceengineers\AppData\Roaming\SpaceEngineersDedicated\Saves\[your world folder]\Sandbox.sbc</LoadWorld>
+	<LoadWorld>Z:\home\[the user that is running the server]\server-data\Saves\[your world folder]\Sandbox.sbc</LoadWorld>
 ```
 - `[your machine's IP address]` CANNOT be left as `0.0.0.0` for reasons unknown. you must set it to the machine's IP address as retrieved from `ifconfig` or the server will refuse to start, saying it can't bind address `0.0.0.0` - eons ago this was suspected to be some sort of WINE bug with regards to .NET compatibility but who knows.
 - `[the user that is running the server]` - in our case will be just `spaceengineers`
-- `[your world folder]` - must match the world folder's name. i shortened mine to `world` when i uploaded it to the server
-
-you'll also want to either remove or temporarily relocate the Backups folder inside your DS's world folder! this can make uploading the world to the server much slower, and since we're all pressed for time in the face of impending nuclear war i suggest outright deleting it.
+- `[your world folder]` - must match the world folder's name. i shortened mine to `world` when i uploaded it to the server.
 
 ------------------
 ## part seven: final steps
-next up, you'll want to automate pretty much everything we just did, as well as introduce a few helper commands, so:
-```bash
-touch ~/start.sh
-chmod +x ~/start.sh
-```
-and inside `start.sh`, put the contents of start.sh from this repository.
 
 ### Xvfb
-after that, if you did X11 display forwarding, you'll want to install Xvfb for a headless X session, then run the server under X11 display offset 0 (`DISPLAY=:0`) instead of 10
+if you did X11 display forwarding, you'll want to install Xvfb for a headless X session, then run the server under X11 display offset 0 (`DISPLAY=:0`) instead of 10
 
-that way when you exit your SSH session or exit the 
+that way when you exit your SSH session the server won't freak out and crash.
 
 ## part eight: start it.
+```
+cd ~/server-files/DedicatedServer64
+DISPLAY=:0 WINEDEBUG=fixme-all wine SpaceEngineersDedicated.exe -noconsole -ignorelastsession -path "Z:\\home\\spaceengineers\\server-data\\"
+```
+it's recommended to run this inside a tmux session so you can view the server console while it's running.
 
-`./start tmux-direct` should accomplish this without much hassle. after that:
-```
-tmux a
-```
-will attach you to the running tmux session. detaching is pretty easy, press <kbd>Ctrl</kbd><kbd>B</kbd> then hit <kbd>D</kbd> - for more keybinds and a clearer usage guide to tmux see these pages:
-### https://tmuxcheatsheet.com/quick-start/
+presently the only way to control the server is from either in-game or via the VRageControlClient that's packaged with the game.
 
 # troubleshooting and common issues
 ## "wine won't install"
@@ -216,6 +211,15 @@ follow the guide on winehq a little closer, maybe you forgot to enable 32-bit pa
 some providers (namely OVH) filter UDP packets without a TCP connection alongside it on the same port - ensure you've allowed your server's port through your provider's firewall as well as your machine's own firewall
 
 ##### ask me how long it took me to find that out. twice. go on, ask! i dare you.
+
+## "i get `003b:err:mscoree:CLRRuntimeInfo_GetRuntimeHost Wine Mono is not installed` when trying to start the server!"
+this means WINE tried to use its own install of mono that they maintain to run a .NET program, which means dotnet48 didn't install properly. most common thing that causes this is using `winetricks -q` to install, or not properly setting $DISPLAY or having your X11 forwarding setup properly. test that it's working with `xeyes`. dotnet and winetricks are a little odd in that they don't explicitly obey $DISPLAY if you haven't set it properly- normally your SSH client will handle this, but if not try the following, adjusting to match your display offset if you changed it:
+```bash
+export DISPLAY=:10
+WINEDEBUG=fixme-all winetricks dotnet48 
+``` 
+(`export` modifies the environment variables a little more permanently until your terminal session ends.)
+
 
 
 
